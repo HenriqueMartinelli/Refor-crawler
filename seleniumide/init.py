@@ -1,8 +1,7 @@
 import time
-
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
-from selenium.common.exceptions import StaleElementReferenceException
+from selenium.common.exceptions import StaleElementReferenceException, ElementClickInterceptedException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 from webdriver_manager.chrome import ChromeDriverManager
@@ -22,37 +21,38 @@ class BaseDriver:
 
         
         self.URL_BASE = 'http://refor.detran.rj.gov.br/'
-        # self.chrome_options = Options()
-        # self.chrome_options.add_argument('--headless')
-        self.chrome_options = chrome_options
+        self.chrome_options = Options()
+        #self.chrome_options.add_argument('--headless')
+        #self.chrome_options.add_argument('--no-sandbox')
+        #self.chrome_options.add_argument('--disable-dev-shm-usage')
         self.driver_path: str = ChromeDriverManager().install()
 
     def setDriver(self, executable_path, chrome_options):
         self.DRIVER: webdriver = webdriver.Chrome(executable_path=executable_path, chrome_options=chrome_options)
-        self.DRIVER.set_page_load_timeout(25)
-        self.DRIVER.implicitly_wait(25)
+        self.DRIVER.set_page_load_timeout(10)
+        self.DRIVER.implicitly_wait(10)
     
         self.current_screen = None
         self.current_frame = None
         return self.DRIVER
 
-    def find_element_by_clickable(self, value, by=By.XPATH, retry_count=2, retry_sleep=0.5) -> WebElement:
+    def find_element_by_clickable(self, value, by=By.XPATH, retry_count=2, retry_sleep=2) -> WebElement:
         for attempt in range(retry_count):
-
 
             erros = ['Disconnect Message', 'Informe a SENHA', 'Script not found']
             if any(t in self.DRIVER.page_source for t in erros):
                 raise ValueError('Natural Disconnect')
             try:
-                WebDriverWait(self.DRIVER, 60).until(EC.element_to_be_clickable((by, value))).click()
+                WebDriverWait(self.DRIVER, 5).until(EC.element_to_be_clickable((by, value))).click()
                 return self.page_state()
-            except NoSuchElementException:
+            except (NoSuchElementException, TimeoutException, ElementClickInterceptedException):
                 print(f"{by}={value}: Element not found {attempt + 1}/{retry_count}")
+                self.page_state()
                 time.sleep(retry_sleep)
         raise NoSuchElementException(f"{by}={value}: Element not found")
 
 
-    def find_element(self, value, by=By.XPATH, retry_count=1, retry_sleep=0.5) -> WebElement:
+    def find_element(self, value, by=By.XPATH, retry_count=2, retry_sleep=0.5) -> WebElement:
         for attempt in range(retry_count):
             erros = ['Disconnect Message', 'Informe a SENHA']
             if any(t in self.DRIVER.page_source for t in erros):
@@ -64,21 +64,15 @@ class BaseDriver:
                 time.sleep(retry_sleep)
         raise NoSuchElementException(f"{by}={value}: Element not found") 
 
-
-
-    def find_element_if_visible(self, value, by=By.XPATH, timeout=60) -> WebElement:
-        page = True
-        while page and timeout:
-            try:
-                if self.DRIVER.find_elements(by, value) != []:
-                    return 
-            except NoSuchElementException:
+    def find_element_if_visible(self, value, by=By.XPATH, timeout=15) -> WebElement:
+        while timeout:
+            if self.DRIVER.find_elements(by, value) != []:
                 time.sleep(1)
-                timeout -= 1
-        return False
+                return self.DRIVER.find_element(by, value)
+            timeout -= 1
 
 
-    def find_locator(self, element: str, screen: str = None, retry_count=1, retry_sleep=0.5, method=None):
+    def find_locator(self, element: str, screen: str = None, retry_count=2, retry_sleep=0.5, method=None):
         
         screen = screen or self.current_screen
 
@@ -100,7 +94,7 @@ class BaseDriver:
         self.DRIVER.switch_to.default_content()
         self.current_frame = None
 
-    def switch_to_frame(self, value, retry_count=10, retry_sleep=0.5):
+    def switch_to_frame(self, value, retry_count=3, retry_sleep=0.5):
         if self.current_frame == value:
             return
         self.switch_to_default_content()
@@ -129,11 +123,6 @@ class BaseDriver:
             else:
                 time.sleep(1)
                 return self.switch_to_screen(last_current_frame)
-
-    @staticmethod
-    def returnMsg(self, infos, msg):
-        finally_msg = f"User: {infos.get('usuario')}, Caer:{infos.get('caer')}, Renach: {infos.get('protocolo')}, Return {msg}"
-        infos.update({'log': finally_msg})
                 
 
     @staticmethod

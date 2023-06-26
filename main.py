@@ -1,31 +1,30 @@
 import logging
-import multiprocessing 
-import os
+import sys
+import json
 from src.crawlers.verify_pratical_exam_category import verify_pratical_exame
 from src.crawlers.set_pratical_exam import set_pratical_exam
-from src.api.db_imports import update_pid
+from src.api.db_imports import update_pid, get_argumentos
+from sys import argv
 
 format = "%(asctime)s: %(message)s"
 logging.basicConfig(format=format, level=logging.INFO,
                     datefmt="%H:%M:%S")
 
 
-def thread_function(name, crawler, kwargs):
- 
-        logging.info("Thread %s: starting", name)
-
-        with crawler() as bot: 
+def main(crawler:str, kwargs:dict):
+    if crawler == 'set_pratical_exam':
+        with set_pratical_exam() as bot: 
             bot.start(**kwargs) 
-        logging.info("Thread %s: finishing", name)
+    else:
+        with verify_pratical_exame() as bot: 
+            bot.start(**kwargs)
+    logging.info("Working running")
 
+inputArgs = sys.argv[1:]
+content = get_argumentos(id=str(inputArgs[0]))
+content_json = json.loads(content['parametros'])
 
-def main(crawler:object, kwargs:dict):
-    logging.info("Main    : before creating thread")
-    kwargs.update({'crawler': str(crawler)})
-    x = multiprocessing.Process(target=thread_function, args=(1, crawler, kwargs))
-    logging.info("Main    : before running thread")
-    x.start()
-    pid= os.getpid()
+if 'agendamentos' in content_json:
+    content_json = content_json['agendamentos']
 
-    return update_pid(pid=pid, id=kwargs['id'])
-
+main(crawler=content_json['crawler'], kwargs=content_json)

@@ -1,10 +1,8 @@
 import psutil
+import subprocess
+from subprocess import PIPE
 from flask import Flask, request
-from main import main
-from src.crawlers.verify_pratical_exam_category import verify_pratical_exame
-from src.crawlers.set_pratical_exam import set_pratical_exam
 from src.api.db_imports import *
-
 
 app = Flask(__name__)
 
@@ -18,27 +16,33 @@ def padrao():
 @app.route('/rj/agendamentos', methods=['POST'])
 def get_agendamentos():
     try:
-        content = get_content_json(["caer", "usuarios", "senhas", "veiculo", "categoria", "tentativas", "horarios", "locais", "datas", "protocolos", "sucesso", "cancelado", "cadastro"])
-        content['datas'] = convert_date(content['datas'])
+        content = get_content_json(["caer", "usuarios", "senhas", "veiculo", "categoria", "tentativas", "horarios", "locais", "datas", "protocolos"])
+        result_convert = convert_data(content['datas'], content['locais'])
+        content['datas'], content['locais'] = result_convert[0], result_convert[1]
+        content['crawler'] = 'set_pratical_exam'
         content['id'] = send_banco(content)
-        main(set_pratical_exam, content)
+        id_argumentos = send_argumentos(content)
+
+        run_work(id_argumentos=id_argumentos, id_robo=content['id'])
 
         return {
             "sucesso" : True,
             "agendamentos" : content
             }
 
-    except Exception as e: 
-        print(e)
+    except Exception as erro: 
+        print(f"Algo está errado: {erro}")
     except:
         return error() 
+
 
 @app.route('/rj/jobpratica/', methods=['GET']) 
 #//FILTRO POR DATA // CAER SEM FILTRO RETORNA TUDO
 def get_jobpratica():
     try:
         content = get_content_args(["data", "caer"])
-        content['data'] =  convert_date([content['data']])[0]
+        result_convert = convert_data(content['datas'], localizacoes=None)
+        content['data'] =  result_convert[0]
         responseJson = get_Alljobs(data =content.get('data'), caer=content.get("caer"))
         
         return {
@@ -51,22 +55,23 @@ def get_jobpratica():
 
 @app.route('/rj/provapratica/<id>', methods=['GET'])
 def get_marcacao(id):
-    responseJson = get_agendamento(id)
-    
     try:
-        return {
-            "agendamento" : responseJson
-        }
+        responseJson = get_agendamento(id)
+        return responseJson
     except:
         return error() 
 
-#### pegar renach e id_pratics 
-#### cancela so agendamento
-@app.route('/rj/provapratica/<id>', methods=['DELETE'])
-def deleta_marcacao(id):
+
+@app.route('/rj/provapratica/', methods=['DELETE'])
+def deleta_marcacao():
     ## deletar aluno da marcacao
-    responseJson = get_banco(id)
-    main(verify_pratical_exame, responseJson)
+    content = get_content_args(["id", "renach"])
+    responseJson = get_banco(id=content['id'], renach=content['renach'])
+    id_argumentos = send_argumentos(responseJson)
+    responseJson['crawler'] = 'verify_pratical_exame'
+
+    id_argumentos = send_argumentos(responseJson)
+    run_work(id_argumentos=id_argumentos, id_robo=responseJson['id'])
 
     try:
         return {
@@ -82,18 +87,27 @@ def remove_job(id):
     try:
         responseJson = get_banco(id)
         pid = responseJson.get('pid')
-        childrens = killtree(pid)
+        killtree(pid)
 
         return {
-                "process": childrens,
-                "method": "kill",
                 "sucesso": True
                 }
     except:
         return error() 
 
+
 ################### UTILS ####################### 
-#### https://stackoverflow.com/questions/4760215/running-shell-command-and-capturing-the-output
+#### 
+
+def run_work(id_argumentos, id_robo):
+    
+    id_encoded = str(id_argumentos)
+    process = subprocess.Popen([f"python3 main.py {id_encoded} >> {id_encoded}.log 2>> {id_encoded}.log"], shell=True, stdout=PIPE, stdin=PIPE, stderr=PIPE)
+    pid = process.pid
+    return update_pid(id=id_robo, pid=pid)
+
+
+
 def killtree(pid, including_parent=True):
     parent = psutil.Process(pid)
     childrens = list()
@@ -101,23 +115,32 @@ def killtree(pid, including_parent=True):
         for child in parent.children(recursive=True):
             childrens.append(f"child: {str(child)}")
             child.kill()
+
+        if including_parent:
+            parent.kill()
     except (psutil.NoSuchProcess):
         pass
-
-    if including_parent:
-        parent.kill()
 
     return childrens
 
 
-def convert_date(datas):
+def convert_data(datas, localizacoes):
     datas_list = list()
+    localizacao_list = list()
     for data in datas:
         data_split = data.split('-')
         y, m, d = data_split[0], data_split[1], data_split[2]
         data = f'{d}/{m}/{y}'
         datas_list.append(data)
-    return datas_list
+    
+    if localizacoes is None:
+        return datas_list
+
+    for localizacao in localizacoes:
+        local = localizacao.encode("latin1").decode("unicode_escape")
+        localizacao_list.append(local)
+    return [datas_list, localizacao_list]
+
 
 def get_content_args(required_fields):
     content = request.args
@@ -134,10 +157,13 @@ def get_content_json(required_fields):
     validate_content(content, required_fields)
     return content
 
+
 def validate_content(content, required_fields):
     for field in required_fields:
         if field not in content:
+            print(f"Requisição inválida; Campo: {field} não está no agendamento")
             raise ("Requisição inválida.")
+
 
 def error(msg="Erro desconhecido ao processar requisição."):
     return {
@@ -145,8 +171,10 @@ def error(msg="Erro desconhecido ao processar requisição."):
         "msg": msg
     }
 
+
 def invalid_request():
     return error("Requisição inválida.")
+
 
 def ok():
     return {

@@ -1,0 +1,10 @@
+ File "/usr/local/lib/python3.9/dist-packages/flask/app.py", line 1842, in finalize_request
+    response = self.make_response(rv)
+  File "/usr/local/lib/python3.9/dist-packages/flask/app.py", line 2134, in make_response
+    raise TypeError(
+TypeError: The view function for 'get_agendamentos' did not return a valid response. The function either returned None or ended without a return statement.
+pid: 24862, id: 32
+pid: 25035, id: 33
+pid: 25208, id: 34
+pid: 28173, id: 35
+pid: 28509, id: 36

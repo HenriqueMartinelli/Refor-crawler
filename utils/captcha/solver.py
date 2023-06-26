@@ -47,8 +47,8 @@ class CaptchaSolver:
         input_element = self.DRIVER.find_locator("captchaInput")
         input_element.clear()
         input_element.send_keys(captcha_answer)
-
         self.DRIVER.find_locator("captchaSendButton", method='click')
+          
 
     def verify_result(self, infos) -> int:
         """
@@ -70,9 +70,9 @@ class CaptchaSolver:
 
 
         try:
-            error_element = self.DRIVER.find_element(error_xpath, retry_count=1)
-            if infos is not None:
-                self.DRIVER.returnMsg(self, infos, error_element.text.strip())
+
+            # error_element = self.DRIVER.find_element_if_visible(value=error_xpath, timeout=5)
+            error_element = self.DRIVER.find_element(error_xpath, retry_count=2)
 
             for error in error_texts:
                 if error in error_element.text.strip():
@@ -81,10 +81,11 @@ class CaptchaSolver:
             pass
         return 0
 
-    def solve(self, infos=None):
+    def solve(self, infos:dict):
         ready = False
         retries = 0
         while not ready:
+            submit_result = 0
             image_id = self.get_image_id()
             try:
                 captcha_answer = self.get_answer(image_id)
@@ -100,14 +101,24 @@ class CaptchaSolver:
             if submit_result == 0:
                 ready = True
             elif submit_result == 2:
-                raise Exception("No stalls available")
-            elif submit_result == 3:
                 self.DRIVER.find_locator("captchaReloadButton", method='click')
+                self.DRIVER.returnMsg(self, infos, "NÃO EXISTEM BANCAS DISPONÍVEIS")
+                self.DRIVER.savePratic(self, infos)
+                retries += 1
+                # raise Exception("No stalls available")
+            elif submit_result == 3:
+                try:self.DRIVER.find_locator("captchaReloadButton", method='click')
+                except: ready = True
                 retries += 1
             elif submit_result == 4:
+                self.DRIVER.returnMsg(self, infos, "No available vehicles")
                 raise Exception("No available vehicles")
             elif submit_result == 5:
-                raise Exception("Schedule not available")
+                self.DRIVER.find_locator("captchaReloadButton", method='click')
+                self.DRIVER.returnMsg(self, infos, "Schedule not available")
+                self.DRIVER.savePratic(self, infos)
+                retries += 1
+                # raise Exception("Schedule not available")
             else:
                 raise Exception("Unknown captcha result")
 

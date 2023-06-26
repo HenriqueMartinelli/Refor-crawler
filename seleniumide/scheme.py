@@ -17,6 +17,7 @@ SITE_SCHEME = {
             "name": "//input[@data-testtoolid='mostrausuario']",
             "praticalExamSchedule": "//a[@title='AGENDAMENTO DE EXAME PRÁTICO']",
             "praticalExamScheduleRequest": "//a[@title='Pedido de Agendamento']",
+            "btnLogout": "//span[@id='$8']",
             "verifyPraticalExame": "//a[@title='Cancelamento de Agendamento']"
         }
     },
@@ -28,6 +29,7 @@ SITE_SCHEME = {
             "captchaInput": "//input[@data-testtoolid='w_texto_captcha']",
             "captchaImage": "//img[@data-testtoolid='img_IO_44']",
             "captchaReloadButton": "//a[@id='MLINK41']",
+            "btnLogout": "//span[@id='$8']",
             "captchaSendButton": "//button[@data-testtoolid='onclickselecionar']",
         }
     },
@@ -45,6 +47,7 @@ SITE_SCHEME = {
             "captchaReloadButton": "//a[@data-testtoolid='onClickexibir']",
             "captchaSendButton": "//button[@data-testtoolid='onclick_agendar']",
             "btnVoltar": "//button[@data-testtoolid='onClickBtnVoltar']",
+            "btnLogout": "//span[@id='$8']",
             "inputResult": "//input[@data-testtoolid='w_agendamento_ok1']"
 
         }
@@ -56,6 +59,8 @@ SITE_SCHEME = {
             "categorySelect": "//select[@data-testtoolid='w_categoria_AB']",
             "renachInput1": "//input[@data-testtoolid='w_formulario_renach']",
             "verifyButton": "//button[@data-testtoolid='onClickEnviar']",
+            "btnLogout": "//span[@id='$8']",
+
             "cancelButton": "//button[@data-testtoolid='onClickConfirmar']"
         }
     },
@@ -67,6 +72,7 @@ SITE_SCHEME = {
             "inputResult": "//input[@data-testtoolid='w_agendamento_ok1']",
             "renachInput1": "//input[@data-testtoolid='w_formulario_renach']",
             "verifyButton": "//button[@data-testtoolid='onClickEnviar']",
+            "btnLogout": "//span[@id='$8']",
             "cancelButton": "//button[@data-testtoolid='onClickConfirmar']"
         }
     }

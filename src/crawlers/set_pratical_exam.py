@@ -56,6 +56,7 @@ class set_pratical_exam(Refor):
 
     @BaseDriver.screen_decorator("PraticalExamScheduleRequestForm")
     def get_schedule_grid_options(self):
+        self.find_locator("dateOptionSelect", method="visible")
         select_element = self.find_locator("dateOptionSelect")
         select_object = Select(select_element)
         options_str = [option.text for option in select_object.options]
@@ -74,7 +75,7 @@ class set_pratical_exam(Refor):
             except Exception as error:
                 msg =  'OPÇÃO SELECIONADA, NÃO ESTÁ MAIS NA LISTA'
                 self.returnMsg(self, self.infos, msg)
-                self.savePratic(self.infos)
+                self.savePratic(self, self.infos)
                 
             self.set_pratical_exam_vehicle(vehicle)
             self.set_renach(renach)
@@ -84,13 +85,14 @@ class set_pratical_exam(Refor):
                 verify_schedule = self.DRIVER.execute_script('''return document.querySelector('[data-testtoolid="w_renach1_msg"]').value''')
                 if "JÁ AGENDADO" in verify_schedule:
                     self.returnMsg(self, self.infos, "JA AGENDADO")
-                    self.savePratic(self.infos)
+                    self.savePratic(self, self.infos)
                     self.loop = False
                     return False
             except:pass
 
+            self.check_text_error()
             if infos.get('log', '') != '':
-                self.savePratic(self.infos)
+                self.savePratic(self, self.infos)
                 return self.callBack()
 
             self.verifyResultSchedule(self.infos, item)
@@ -99,12 +101,12 @@ class set_pratical_exam(Refor):
 
             else:
                 infos.update({"cancelado": 'N',"sucesso": "N"})
-                self.savePratic(self.infos)
+                self.savePratic(self, self.infos)
         
-        msg = (f"No option found for dates: {json.dumps(self.infos['dates'])}, times: {json.dumps(self.infos['times'])}, "
-                f"locations: {json.dumps(self.infos['locations'])}")
+        msg = (f"Sem Agendamentos Disponíveis Para As Datas: {json.dumps(self.infos['dates'])}, Horários: {json.dumps(self.infos['times'])}, "
+                f"Locais de Prova: {json.dumps(self.infos['locations'])}")
         self.returnMsg(self, self.infos, msg)
-        self.savePratic(self.infos)
+        self.savePratic(self, self.infos)
         
         return self.callBack()
 
@@ -125,6 +127,7 @@ class set_pratical_exam(Refor):
             for option in options:
 
                 if dates and option["date"] not in dates:
+ 
                     if dates == ['']: pass
                     else:continue
 
@@ -140,8 +143,7 @@ class set_pratical_exam(Refor):
                     option["vagas"] = int(vacancies) + 1
 
                 if "LIVRE DE COTA" not in option["others"]:
-
-                    if not int(option["vagas"]) < int(vacancies):
+                    if not int(option["vagas"]) > int(vacancies):
                         continue
 
                     if option["qt_prim"] is None:
@@ -195,8 +197,12 @@ class set_pratical_exam(Refor):
 
     @BaseDriver.screen_decorator("PraticalExamScheduleRequest")
     def set(self, category):
+        from datetime import datetime
+
         self.set_pratical_exam_category(category)
-        CaptchaSolver(self).solve()
+        now = datetime.now()
+        CaptchaSolver(self).solve(self.infos)
+        now = datetime.now()
         self.switch_to_screen("PraticalExamScheduleRequestForm")
 
     def callBack(self):
@@ -215,13 +221,15 @@ class set_pratical_exam(Refor):
 
             if self.current_user == self.total_user:
                 infos.update({"sucesso": "S", "cancelado": "N"})
-                self.savePratic(infos)
+                self.savePratic(self, infos)
                 
                 infos.update({"sucesso": "S", "cancelado": "N"})
                 self.saveScheduled(infos)
+                self.logout()
             else: 
                 infos.update({"sucesso": "S", "cancelado": "N"})
                 self.saveScheduled(infos)
+                self.logout()
 
             self.loop = False
             return 
@@ -229,7 +237,7 @@ class set_pratical_exam(Refor):
         elif submit_result == 2:
             msg = 'Não possui cota'
             self.returnMsg(self, self.infos, msg)
-            self.savePratic(infos)
+            self.savePratic(self, infos)
 
 
     def saveToScheluded(self, infos, script):
@@ -247,7 +255,6 @@ class set_pratical_exam(Refor):
             ]
 
         try:
-            # responseText = self.find_locator("inputResult")
             for msg in texts:
                 if msg in responseText.strip():
                     return texts.index(msg) + 1 
@@ -255,6 +262,15 @@ class set_pratical_exam(Refor):
             pass
         return 0
 
+
+    def check_text_error(self):
+        try:
+            responseText = self.DRIVER.execute_script('''return document.querySelector("#STATUSBARSTATUSBAR > table > tbody > tr > td.STATUSBARCell").innerText''')
+            if responseText.strip() != '':
+                self.returnMsg(self, self.infos, responseText)
+                self.savePratic(self, self.infos)
+        except:
+            pass
 
 
 

@@ -93,7 +93,7 @@ class Refor(BaseDriver):
             try:
                 self.setDriver(executable_path=self.driver_path, chrome_options=self.chrome_options)
                 self.login(username=user, password=password, category=category)
-                self.DRIVER.implicitly_wait(1.5)
+                self.DRIVER.implicitly_wait(0.5)
                 ready = True
             except Exception as e:
                 attemps -= 1
@@ -165,7 +165,7 @@ class Refor(BaseDriver):
         conn.commit()
         conn.close()
 
-        obj.set_webhook(obj, url=data.get('webhook'), id=id, infos=data)
+        #obj.set_webhook(obj, url=data.get('webhook'), id=id, infos=data)
         return logging.info('Data entered successfully')
 
 
@@ -186,7 +186,7 @@ class Refor(BaseDriver):
         conn.commit()
         conn.close()
         logging.info('Data entered successfully')
-        obj.set_webhook(obj, url=data.get('webhook'), id=id, infos=data)
+        #obj.set_webhook(obj, url=data.get('webhook'), id=id, infos=data)
         return logging.info(f'''successfully scheduled, id: {id}, renach: {data.get('renach')}, date: {data.get('date')}, 
                          time: {data.get('time')}, local: {data.get('location')}, sucesso: {'True'}''')
 
@@ -208,8 +208,8 @@ class Refor(BaseDriver):
         conn.commit()
         conn.close()
 
-        try: obj.set_webhook(obj, url=data.get('webhook'), id=id, infos=data)
-        except: obj.DRIVER.set_webhook(obj, url=data.get('webhook'), id=id, infos=data)
+        #try: obj.set_webhook(obj, url=data.get('webhook'), id=id, infos=data)
+        #except: obj.DRIVER.set_webhook(obj, url=data.get('webhook'), id=id, infos=data)
         return logging.info('Data entered successfully')
 
 
@@ -217,7 +217,8 @@ class Refor(BaseDriver):
     def set_webhook(obj, url:str, id:str, infos:dict):
         try:
             result_json = infos['log']["log_webhook"]
-            return requests.request('POST', url, json={'agendamento': result_json}, params={'id': id}, timeout=5)
+            #return requests.request('POST', url, json={'agendamento': result_json}, params={'id': id}, timeout=5)
+            return True
         except Exception as e:
             logging.warning(f'Webhook Error: {e}')
 

@@ -59,16 +59,9 @@ class verify_pratical_exame(Refor):
         msg = 'Cancelamento realizado com sucesso.'
         if msg in self.DRIVER.page_source:
             schedule_grid.update({'msg': msg, 'cancelado': True})
-
-            if self.current_user == self.total_user:
-                self.infos.update({"sucesso": "S", "cancelado": "S"})
-                self.savePratic(self.infos)
-                
-                self.infos.update({"sucesso": "S", "cancelado": "S"})
-                self.saveScheduled(self.infos)
-            else: 
-                self.infos.update({"sucesso": "S", "cancelado": "S"})
-                self.saveScheduled(self.infos)
+            
+            self.infos.update({"sucesso": "S", "cancelado": "S"})
+            self.saveDeleteSchedule(self.infos)
 
             logging.info(schedule_grid)
             self.loop = False
@@ -89,7 +82,7 @@ class verify_pratical_exame(Refor):
                     msg_error = f"Text error: {msg} found"
                     self.infos.update({'log': msg_error })
                     self.infos.update({"sucesso": "N", "cancelado": "N"})
-                    self.savePratic(self.infos)
+                    self.savePratic(self, self.infos)
                     self.loop = False
                     return 
         except NoSuchElementException:

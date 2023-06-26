@@ -13,25 +13,41 @@ def get_agendamento(id):
 
         query = cursor.execute(sql)
         for row in query:
-            agendamento = {'protocolos': row[11]}  
+            agendamento = {'id': row[0], 'detranrj_refor_praticos_id': row[1],'data': row[2],
+                            'hora': row[3], 'local': row[4],'protocolo': row[5], 'tentativas': row[6],
+                           'sucesso': row[7],'cancelado': row[8], 'cadastro': row[9] }  
         conn.close()
-        return agendamento
+        if agendamento == {}:
+            return {
+                  "agendamento": f"Não a nada agendado com o id:{id}",
+                  "sucesso": False }
+        else:
+            return { 
+                 "agendamento": agendamento,
+                 "sucesso": True}
+
     except Exception as erro: 
         print(f'Error ao consultar banco: {erro}')
 
 
 
-def get_banco(id):
+
+def get_banco(id, renach=None):
     try:
         agendamento = dict()
         conn = sqlite3.connect('detran-services.s3db')
         cursor = conn.cursor()
+        if renach is None:
+            sql = f"""
+            SELECT * FROM detranrj_refor_praticos WHERE id = '{id}';
+            """
 
-        sql = f"""
-        SELECT * FROM detranrj_refor_praticos WHERE id = {id};
-        """
+        else:
+            sql = f"""
+        SELECT * FROM detranrj_refor_praticos WHERE id = '{id}' and protocolos like '%{renach}%';
+    """
+
         query = cursor.execute(sql)
-        
         for row in query:
             agendamento = {'id': row[0], 'pid': row[1],'caer': row[2], 'usuarios': row[3], 'senhas': row[4],
                         'categoria': row[5], 'veiculo': row[6], 'tentativas': row[7],'locais': row[8],
@@ -61,7 +77,6 @@ def get_Alljobs(data, caer=None):
             sql = f"""
                     SELECT * FROM detranrj_refor_praticos WHERE datas like '%{data}%'
                         """
-        print(sql)
         query = cursor.execute(sql)
         for row in query:
             agendamento.append({'id': row[0], 'pid': row[1],'caer': row[2], 'usuarios': row[3], 'senhas': row[4],
@@ -114,5 +129,47 @@ def update_pid(pid, id):
         conn.close()
     except Exception as erro: 
         print(f'Error ao consultar banco: {erro}')
+
+
+
+def get_argumentos(id):
+    try:
+        agendamento = dict()
+        conn = sqlite3.connect('detran-services.s3db')
+        cursor = conn.cursor()
+
+        sql = f"""
+        SELECT * FROM parametros_execucao WHERE id = {id};
+        """       
+        print(sql)
+        query = cursor.execute(sql)
+        for row in query:
+            agendamento = {'id': row[0], 'parametros': row[1]}
+
+        conn.close()
+        return agendamento
+    
+    except Exception as erro: 
+        print(f'Error ao consultar banco: {erro}')
+
+
+def send_argumentos(content:dict):
+    try:
+        conn = sqlite3.connect('detran-services.s3db')
+        cursor = conn.cursor()
+        
+        sql = f'''INSERT INTO parametros_execucao (argumentos) 
+            VALUES ('{json.dumps(content)}');'''
+
+        cursor.execute(sql)
+        id = cursor.lastrowid
+
+        conn.commit()
+        conn.close()
+        return id 
+    except Exception as erro: 
+        print(f'Error ao consultar banco: {erro}')
+
+
 
 
